@@ -21,22 +21,11 @@ export const cyclesForDuration = (uniqueFrames: number, fps: number, durationS: 
 };
 
 /**
- * Expand boomerang indices repeated `cycles` times.
- * Avoids producing two consecutive identical indices at junctions.
+ * Expand boomerang indices repeated `cycles` times. Each cycle already stops one
+ * short of frame 0, so cycles join (and the video loops) without a repeated frame.
  */
-export const expandedSequence = (uniqueFrames: number, cycles: number): number[] => {
-  const base = boomerangIndices(uniqueFrames);
-  if (cycles <= 1) return base;
-  const out: number[] = [];
-  for (let c = 0; c < cycles; c++) {
-    for (let i = 0; i < base.length; i++) {
-      // Skip first index of subsequent cycles to avoid duplicate at junction.
-      if (c > 0 && i === 0) continue;
-      out.push(base[i]);
-    }
-  }
-  return out;
-};
+export const expandedSequence = (uniqueFrames: number, cycles: number): number[] =>
+  Array.from({ length: Math.max(1, cycles) }, () => boomerangIndices(uniqueFrames)).flat();
 
 /** Compute target rect (offsetX, offsetY, drawW, drawH) to "contain" image in canvas. */
 export const containRect = (

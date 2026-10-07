@@ -101,6 +101,8 @@ export const encodeBoomerang = async ({
     '-crf', String(crf),
     '-movflags', '+faststart',
     '-an',
+    // The repeated last entry would otherwise come out as one extra frame.
+    '-frames:v', String(indices.length),
     out,
   ]);
 

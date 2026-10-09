@@ -1,8 +1,7 @@
 import { defineConfig, devices } from '@playwright/test';
 
 /**
- * Playwright config — runs against `npm run preview` on a fixed port.
- * Mobile + desktop projects to validate responsive layout.
+ * Runs against `bun run preview` on a fixed port, on desktop Chrome and mobile Safari.
  */
 export default defineConfig({
   testDir: './tests',
@@ -23,7 +22,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: 'npm run preview -- --port 4321 --host',
+    command: 'bun run preview --port 4321 --host',
     url: 'http://localhost:4321/boomerang/',
     reuseExistingServer: !process.env.CI,
     timeout: 120_000,

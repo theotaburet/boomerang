@@ -1,6 +1,6 @@
 /*
   # COOP/COEP enable cross-origin isolation if/when we switch to ffmpeg-core-mt.
-  # Single-threaded core works without these — kept here for easy upgrade.
+  # The single-threaded core works without them; kept here for that upgrade.
   # Cross-Origin-Opener-Policy: same-origin
   # Cross-Origin-Embedder-Policy: require-corp
   Cross-Origin-Resource-Policy: cross-origin

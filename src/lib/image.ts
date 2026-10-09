@@ -19,13 +19,9 @@ const isHeic = (file: File | Blob): boolean => {
   return false;
 };
 
-/**
- * Convert HEIC/HEIF to a JPEG Blob via dynamic-imported polyfill.
- * Loaded only if needed, keeps initial bundle lean.
- */
+/** Convert HEIC/HEIF to JPEG with heic2any, fetched from a CDN only when needed. */
 const heicToJpeg = async (file: File | Blob): Promise<Blob> => {
-  // Dynamic import: polyfill is large, only fetched on demand.
-  // URL import (no npm dep) — use a variable so TS doesn't statically resolve.
+  // The URL lives in a variable so TypeScript and Vite do not try to resolve it.
   const url = 'https://esm.sh/heic2any@0.0.4';
   const mod = (await import(/* @vite-ignore */ url)) as {
     default?: (opts: { blob: Blob; toType?: string; quality?: number }) => Promise<Blob | Blob[]>;
@@ -35,7 +31,7 @@ const heicToJpeg = async (file: File | Blob): Promise<Blob> => {
   return Array.isArray(out) ? out[0] : out;
 };
 
-/** EXIF orientation 1-8 → CSS-like rotation/flip on canvas. */
+/** Apply EXIF orientation 1-8 as a canvas transform. */
 const applyOrientation = (
   ctx: OffscreenCanvasRenderingContext2D,
   orientation: number,
@@ -65,9 +61,8 @@ export const readOrientation = async (file: File | Blob): Promise<number> => {
 };
 
 /**
- * Decode → orient → pad → resize → JPEG bytes.
- * Runs in worker (uses OffscreenCanvas + createImageBitmap).
- * Releases the source bitmap after use to free memory aggressively.
+ * Decode, orient, pad, resize, return JPEG bytes.
+ * Runs in a worker (OffscreenCanvas + createImageBitmap) and closes the source bitmap when done.
  */
 export const processToJpeg = async (
   file: File | Blob,
@@ -77,8 +72,8 @@ export const processToJpeg = async (
 ): Promise<Uint8Array> => {
   const source: File | Blob = isHeic(file) ? await heicToJpeg(file) : file;
   const bitmap = await createImageBitmap(source, { imageOrientation: 'from-image' });
-  // imageOrientation: 'from-image' handles EXIF natively in modern browsers.
-  // We still apply manual orientation as fallback for older Safari.
+  // 'from-image' applies EXIF orientation in current browsers; the manual
+  // transform below is the fallback for older Safari.
 
   const { width, height, background, paddingPct } = opts;
   const canvas = new OffscreenCanvas(width, height);
@@ -90,9 +85,7 @@ export const processToJpeg = async (
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  // Determine actual displayed dimensions (orientation may be already applied by 'from-image').
-  // To keep KISS we trust browser EXIF; if it didn't apply, fallback.
-  const needsManual = orientation > 4; // rotated 90/270 — swap dims
+  const needsManual = orientation > 4; // rotated 90/270: swap dimensions
   const srcW = needsManual ? bitmap.height : bitmap.width;
   const srcH = needsManual ? bitmap.width : bitmap.height;
 

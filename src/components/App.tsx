@@ -46,7 +46,7 @@ const stale = (s: State): State => ({
   ...s,
   frames: [],
   videoUrl: null,
-  // If files are loaded, we'll need to re-preprocess → enter that phase right away.
+  // With files loaded, a settings change needs a new preprocess pass, so enter that phase right away.
   phase: s.files.length ? 'preprocessing' : 'idle',
   progressLabel: s.files.length ? 'Loading photos…' : '',
   error: null,
@@ -159,7 +159,7 @@ export default function App() {
             Boomerang
           </h1>
           <p className="mt-2 text-sm md:text-base font-bold opacity-80">
-            Photos → looped video. 100% in your browser.
+            Photos to a looped video, entirely in your browser.
           </p>
         </div>
         <div className="brut-sm px-3 py-2 text-xs font-mono uppercase font-bold inline-block">

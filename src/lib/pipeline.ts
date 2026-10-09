@@ -1,5 +1,5 @@
 /**
- * Worker orchestration. KISS API for the UI:
+ * Worker orchestration. The only API the UI calls:
  *   const pipeline = createPipeline();
  *   const frames = await pipeline.preprocess(files, opts, onProgress);
  *   const blob   = await pipeline.encode({ frames, fps, crf, durationS }, onProgress);
@@ -16,13 +16,6 @@ const spawnPreprocess = () =>
 const spawnEncode = () =>
   new Worker(new URL('~/workers/encode.worker.ts', import.meta.url), { type: 'module' });
 
-export interface EncodeArgs {
-  frames: Uint8Array[];
-  fps: number;
-  crf: number;
-  durationS: number;
-}
-
 export interface Pipeline {
   preprocess: (
     files: File[],
@@ -30,7 +23,7 @@ export interface Pipeline {
     onProgress?: (done: number, total: number) => void
   ) => Promise<Uint8Array[]>;
   encode: (
-    args: EncodeArgs,
+    args: EncodeRequest,
     onProgress?: (ratio: number) => void
   ) => Promise<Blob>;
   dispose: () => void;
@@ -72,7 +65,7 @@ export const createPipeline = (): Pipeline => {
     return out;
   };
 
-  const encode: Pipeline['encode'] = ({ frames, fps, crf, durationS }, onProgress) =>
+  const encode: Pipeline['encode'] = (req, onProgress) =>
     new Promise((resolve, reject) => {
       encoder?.terminate();
       encoder = spawnEncode();
@@ -80,8 +73,7 @@ export const createPipeline = (): Pipeline => {
         const msg = e.data;
         if (msg.type === 'progress') onProgress?.(msg.ratio);
         else if (msg.type === 'log') {
-          // Surface ffmpeg + worker logs to console for diagnostics.
-          // eslint-disable-next-line no-console
+          // ffmpeg and worker logs, visible in the devtools console.
           console.log('[encode]', msg.message);
         }
         else if (msg.type === 'done') {
@@ -94,9 +86,8 @@ export const createPipeline = (): Pipeline => {
           encoder = null;
         }
       };
-      const req: EncodeRequest = { frames, fps, crf, durationS };
-      // Copy buffers (small JPEGs) — do NOT transfer, so main thread keeps
-      // frames alive for re-encode / live preview after export.
+      // Copy the buffers (small JPEGs), do not transfer them: the main thread
+      // keeps the frames for the live preview and for a re-encode.
       encoder.postMessage(req);
     });
 

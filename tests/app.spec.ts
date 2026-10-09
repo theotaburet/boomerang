@@ -53,7 +53,7 @@ test.describe('Boomerang app', () => {
     await expect(page.getByTestId('hint-size')).toContainText('1080×1080');
 
     await page.getByTestId('preset-portrait').click();
-    // 9:16 at long edge 1080 → 608×1080 (rounded even).
+    // 9:16 at long edge 1080 gives 608×1080 (rounded to even).
     await expect(page.getByTestId('hint-size')).toContainText(/×1080/);
 
     await page.getByTestId('preset-landscape').click();
@@ -90,7 +90,7 @@ test.describe('Boomerang app', () => {
     });
 
     await dropFiles(page);
-    // Wait for preprocessing to complete (frames ready → canvas visible, busy overlay gone).
+    // Wait for preprocessing to complete: canvas visible, busy overlay gone.
     await expect(page.getByTestId('preview-canvas')).toBeVisible({ timeout: 30_000 });
     await expect(page.getByTestId('preview-busy')).toHaveCount(0, { timeout: 30_000 });
 

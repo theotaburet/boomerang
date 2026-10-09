@@ -1,11 +1,7 @@
 #!/usr/bin/env node
 /**
- * Generate tiny solid-color JPEG fixtures for E2E tests.
- * KISS: writes minimal valid JPEGs via canvas (sharp-free, zero deps).
- *
- * Uses Node's built-in `node:canvas` is not available, so we hand-roll
- * a minimal JPEG using a base64 1x1 then resize? Simpler: ship pre-made
- * tiny PNGs via base64 + use those (PNG works just as well as test input).
+ * Write 64x64 solid-color PNG fixtures to tests/fixtures/ (no dependencies).
+ * The output is committed; rerun only to regenerate it.
  */
 import { mkdir, writeFile } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -15,7 +11,7 @@ const here = dirname(fileURLToPath(import.meta.url));
 const outDir = resolve(here, '..', 'tests', 'fixtures');
 await mkdir(outDir, { recursive: true });
 
-/** Build a 64x64 solid-color PNG via raw zlib-less PNG (uncompressed IDAT). */
+/** CRC-32 for PNG chunks. */
 const crc32 = (() => {
   const table = new Uint32Array(256);
   for (let i = 0; i < 256; i++) {

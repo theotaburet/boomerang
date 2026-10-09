@@ -53,7 +53,7 @@ export default function Dropzone({ files, onFiles, disabled }: Props) {
         {files.length === 0 ? 'Drop your photos here' : `${files.length} photo${files.length > 1 ? 's' : ''} selected`}
       </div>
       <div className="mt-2 text-sm font-bold opacity-70">
-        {files.length === 0 ? 'or click — JPG / PNG / WebP / HEIC' : 'click to replace'}
+        {files.length === 0 ? 'or click. JPG, PNG, WebP, HEIC' : 'click to replace'}
       </div>
     </div>
   );

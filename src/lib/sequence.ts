@@ -1,5 +1,5 @@
 /**
- * Pure helpers — no DOM, no React. Used by both main thread and workers.
+ * Pure helpers, no DOM, no React. Used by both the main thread and the workers.
  */
 
 /** Build a boomerang index sequence: [0,1,2,3,2,1] from N=4. */

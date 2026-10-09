@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * Self-host ffmpeg-core assets in `public/ffmpeg/`.
- * Run once after `npm install`: `npm run setup:ffmpeg`.
+ * Runs on `bun install` (postinstall) and on `bun run setup:ffmpeg`.
  *
- * KISS: no deps, uses global fetch (Node >= 18).
+ * No dependencies: uses global fetch.
  */
 import { mkdir, writeFile, stat } from 'node:fs/promises';
 import { dirname, resolve } from 'node:path';
@@ -45,11 +45,5 @@ for (const name of FILES) {
 console.log(
   downloaded
     ? `\nDone. ${downloaded} file(s) downloaded to public/ffmpeg/`
-    : '\nNothing to do — all files already present.'
-);
-
-console.log(
-  downloaded
-    ? `\nDone. ${downloaded} file(s) downloaded to public/ffmpeg/`
-    : '\nNothing to do — all files already present.'
+    : '\nNothing to do, all files already present.'
 );

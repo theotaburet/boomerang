@@ -9,7 +9,7 @@ Live: <https://theotaburet.github.io/boomerang/>
 ## What it does
 
 - Square, portrait (9:16) and landscape (16:9) presets, long edge from 720 to 4096 px.
-- Padding and background color.
+- Fit or fill the frame, padding, background color, rotation by quarter turns.
 - EXIF orientation, HEIC input (converted on the fly).
 - Live canvas preview before encoding.
 - H.264, yuv420p, faststart MP4.
@@ -42,4 +42,9 @@ headers for Netlify.
 
 ## License
 
-MIT
+MIT, see `LICENSE`.
+
+The build downloads `@ffmpeg/core` (FFmpeg with libx264) into `public/ffmpeg/`,
+and that core is GPL-2.0-or-later. A deployed site therefore ships a GPL
+component alongside this MIT code; keep that in mind if you redistribute a
+build rather than the source.

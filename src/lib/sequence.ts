@@ -1,6 +1,7 @@
 /**
  * Pure helpers, no DOM, no React. Used by both the main thread and the workers.
  */
+import type { Fit } from './presets';
 
 /** Build a boomerang index sequence: [0,1,2,3,2,1] from N=4. */
 export const boomerangIndices = (n: number): number[] => {
@@ -27,19 +28,23 @@ export const cyclesForDuration = (uniqueFrames: number, fps: number, durationS: 
 export const expandedSequence = (uniqueFrames: number, cycles: number): number[] =>
   Array.from({ length: Math.max(1, cycles) }, () => boomerangIndices(uniqueFrames)).flat();
 
-/** Compute target rect (offsetX, offsetY, drawW, drawH) to "contain" image in canvas. */
-export const containRect = (
+/**
+ * Rect in which to draw an image inside the canvas minus its padding.
+ * 'contain' keeps the whole image; 'cover' scales it to fill `inner` and
+ * overflows it, so the caller clips to `inner`.
+ */
+export const fitRect = (
   imgW: number,
   imgH: number,
   canvasW: number,
   canvasH: number,
-  paddingPct: number
-): { dx: number; dy: number; dw: number; dh: number } => {
+  paddingPct: number,
+  fit: Fit
+): { dx: number; dy: number; dw: number; dh: number; inner: { x: number; y: number; w: number; h: number } } => {
   const pad = Math.min(canvasW, canvasH) * (paddingPct / 100);
-  const innerW = canvasW - 2 * pad;
-  const innerH = canvasH - 2 * pad;
-  const scale = Math.min(innerW / imgW, innerH / imgH);
+  const inner = { x: pad, y: pad, w: canvasW - 2 * pad, h: canvasH - 2 * pad };
+  const scale = (fit === 'cover' ? Math.max : Math.min)(inner.w / imgW, inner.h / imgH);
   const dw = imgW * scale;
   const dh = imgH * scale;
-  return { dx: (canvasW - dw) / 2, dy: (canvasH - dh) / 2, dw, dh };
+  return { dx: (canvasW - dw) / 2, dy: (canvasH - dh) / 2, dw, dh, inner };
 };

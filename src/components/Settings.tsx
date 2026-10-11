@@ -6,6 +6,7 @@ import {
   FPS_MIN, FPS_MAX, FPS_STEP,
   DURATION_MIN, DURATION_MAX,
   PADDING_MIN, PADDING_MAX,
+  ROTATIONS, type Fit, type Rotation,
 } from '~/lib/presets';
 
 interface Props {
@@ -15,6 +16,8 @@ interface Props {
   durationS: number;
   background: string;
   paddingPct: number;
+  fit: Fit;
+  rotation: Rotation;
   width: number;
   height: number;
   disabled?: boolean;
@@ -24,6 +27,8 @@ interface Props {
   onDuration: (s: number) => void;
   onBg: (color: string) => void;
   onPadding: (pct: number) => void;
+  onFit: (fit: Fit) => void;
+  onRotation: (deg: Rotation) => void;
 }
 
 const Field = ({ label, hint, children }: { label: string; hint?: string; children: React.ReactNode }) => (
@@ -53,9 +58,31 @@ const Slider = ({
   />
 );
 
+const Choice = ({
+  checked, onClick, testid, children,
+}: {
+  checked: boolean; onClick: () => void; testid: string; children: React.ReactNode;
+}) => (
+  <button
+    type="button"
+    role="radio"
+    aria-checked={checked}
+    onClick={onClick}
+    data-testid={testid}
+    className={`brut-btn text-xs px-2 py-2 ${checked ? 'bg-[var(--color-brut-accent-3)] text-white' : ''}`}
+  >
+    {children}
+  </button>
+);
+
+const FITS: { id: Fit; label: string; hint: string }[] = [
+  { id: 'contain', label: 'Fit', hint: 'whole photo' },
+  { id: 'cover', label: 'Fill', hint: 'crop to frame' },
+];
+
 export default function Settings({
-  presetId, size, fps, durationS, background, paddingPct, width, height, disabled,
-  onPreset, onSize, onFps, onDuration, onBg, onPadding,
+  presetId, size, fps, durationS, background, paddingPct, fit, rotation, width, height, disabled,
+  onPreset, onSize, onFps, onDuration, onBg, onPadding, onFit, onRotation,
 }: Props) {
   const totalFrames = Math.round(durationS * fps);
   const isHeavy = size >= 2048;
@@ -99,20 +126,10 @@ export default function Settings({
       >
         <div className="grid grid-cols-5 gap-2" role="radiogroup" aria-label="Size">
           {SIZE_OPTIONS.map((s) => (
-            <button
-              key={s}
-              type="button"
-              role="radio"
-              aria-checked={size === s}
-              onClick={() => onSize(s)}
-              data-testid={`size-${s}`}
-              className={`brut-btn text-xs px-2 py-2 ${
-                size === s ? 'bg-[var(--color-brut-accent-3)] text-white' : ''
-              }`}
-            >
+            <Choice key={s} checked={size === s} onClick={() => onSize(s)} testid={`size-${s}`}>
               {s % 1024 ? s : `${s / 1024}K`}
               <div className="text-[9px] opacity-70 normal-case font-normal">{s}px</div>
-            </button>
+            </Choice>
           ))}
         </div>
       </Field>
@@ -157,6 +174,27 @@ export default function Settings({
               maxLength={7}
               data-testid="bg-text"
             />
+          </div>
+        </Field>
+
+        <Field label="Fit">
+          <div className="grid grid-cols-2 gap-2" role="radiogroup" aria-label="Fit">
+            {FITS.map((f) => (
+              <Choice key={f.id} checked={fit === f.id} onClick={() => onFit(f.id)} testid={`fit-${f.id}`}>
+                {f.label}
+                <div className="text-[9px] opacity-70 normal-case font-normal">{f.hint}</div>
+              </Choice>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Rotation">
+          <div className="grid grid-cols-4 gap-2" role="radiogroup" aria-label="Rotation">
+            {ROTATIONS.map((deg) => (
+              <Choice key={deg} checked={rotation === deg} onClick={() => onRotation(deg)} testid={`rotation-${deg}`}>
+                {deg}°
+              </Choice>
+            ))}
           </div>
         </Field>
       </div>

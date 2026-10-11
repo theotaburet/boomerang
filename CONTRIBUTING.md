@@ -32,7 +32,7 @@ src/
 ├── lib/
 │   ├── presets.ts      # Output presets and limits
 │   ├── sequence.ts     # Pure helpers: boomerang indices, cycle count, contain math
-│   ├── image.ts        # Decode, EXIF orientation, pad, resize, JPEG bytes
+│   ├── image.ts        # Decode, fit or fill, rotate, JPEG bytes
 │   ├── encoder.ts      # ffmpeg.wasm wrapper
 │   └── pipeline.ts     # Worker orchestration, the only API the UI calls
 ├── workers/            # preprocess (image) and encode (ffmpeg) workers

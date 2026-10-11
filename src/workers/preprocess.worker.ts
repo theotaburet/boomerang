@@ -1,9 +1,9 @@
 /// <reference lib="webworker" />
 /**
- * Preprocess worker: decode + EXIF orient + pad to square + resize to JPEG bytes.
+ * Preprocess worker: decode, fit, rotate and resize one photo to JPEG bytes.
  * Receives one job at a time. Posts back the JPEG Uint8Array (transferable).
  */
-import { processToJpeg, readOrientation, type ProcessOptions } from '~/lib/image';
+import { processToJpeg, type ProcessOptions } from '~/lib/image';
 
 export interface PreprocessRequest {
   id: number;
@@ -20,8 +20,7 @@ export interface PreprocessResponse {
 self.onmessage = async (e: MessageEvent<PreprocessRequest>) => {
   const { id, file, opts } = e.data;
   try {
-    const orientation = await readOrientation(file);
-    const bytes = await processToJpeg(file, orientation, opts);
+    const bytes = await processToJpeg(file, opts);
     const reply: PreprocessResponse = { id, bytes };
     (self as unknown as Worker).postMessage(reply, [bytes.buffer]);
   } catch (err) {

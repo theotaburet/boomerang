@@ -53,3 +53,12 @@ export const DURATION_MIN = 1;
 export const DURATION_MAX = 15;
 export const PADDING_MIN = 0;
 export const PADDING_MAX = 25;
+
+/** How the photo meets the padded frame: 'contain' keeps it whole, 'cover' crops it to fill. */
+export type Fit = 'contain' | 'cover';
+export const DEFAULT_FIT: Fit = 'contain';
+
+/** Extra clockwise rotation applied to every photo, in degrees. */
+export const ROTATIONS = [0, 90, 180, 270] as const;
+export type Rotation = (typeof ROTATIONS)[number];
+export const DEFAULT_ROTATION: Rotation = 0;

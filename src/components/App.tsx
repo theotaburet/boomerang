@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useReducer, useRef } from 'react';
 import { createPipeline, type Pipeline } from '~/lib/pipeline';
 import {
-  DEFAULT_BG, DEFAULT_DURATION_S, DEFAULT_PADDING_PCT, DEFAULT_PRESET, DEFAULT_SIZE,
-  PRESETS, dimensionsFor, type PresetId, type SizeOption,
+  DEFAULT_BG, DEFAULT_DURATION_S, DEFAULT_FIT, DEFAULT_PADDING_PCT, DEFAULT_PRESET, DEFAULT_ROTATION, DEFAULT_SIZE,
+  PRESETS, dimensionsFor, type Fit, type PresetId, type Rotation, type SizeOption,
 } from '~/lib/presets';
 import Dropzone from './Dropzone';
 import Settings from './Settings';
@@ -20,6 +20,8 @@ interface State {
   durationS: number;
   background: string;
   paddingPct: number;
+  fit: Fit;
+  rotation: Rotation;
   phase: Phase;
   progress: number;
   progressLabel: string;
@@ -36,6 +38,8 @@ type Action =
   | { type: 'set-duration'; s: number }
   | { type: 'set-bg'; color: string }
   | { type: 'set-padding'; pct: number }
+  | { type: 'set-fit'; fit: Fit }
+  | { type: 'set-rotation'; deg: Rotation }
   | { type: 'phase'; phase: Phase }
   | { type: 'progress'; ratio: number; label?: string }
   | { type: 'frames-ready'; frames: Uint8Array[] }
@@ -61,6 +65,8 @@ const initial: State = {
   durationS: DEFAULT_DURATION_S,
   background: DEFAULT_BG,
   paddingPct: DEFAULT_PADDING_PCT,
+  fit: DEFAULT_FIT,
+  rotation: DEFAULT_ROTATION,
   phase: 'idle',
   progress: 0,
   progressLabel: '',
@@ -76,6 +82,8 @@ const reducer = (s: State, a: Action): State => {
     case 'set-size':     return stale({ ...s, size: a.size });
     case 'set-bg':       return stale({ ...s, background: a.color });
     case 'set-padding':  return stale({ ...s, paddingPct: a.pct });
+    case 'set-fit':      return stale({ ...s, fit: a.fit });
+    case 'set-rotation': return stale({ ...s, rotation: a.deg });
     case 'set-fps':      return { ...s, fps: a.fps, videoUrl: null, phase: s.frames.length ? 'ready' : s.phase };
     case 'set-duration': return { ...s, durationS: a.s, videoUrl: null, phase: s.frames.length ? 'ready' : s.phase };
     case 'phase':        return { ...s, phase: a.phase, error: null };
@@ -113,14 +121,14 @@ export default function App() {
     try {
       const frames = await getPipeline().preprocess(
         state.files,
-        { width, height, background: state.background, paddingPct: state.paddingPct },
+        { width, height, background: state.background, paddingPct: state.paddingPct, fit: state.fit, rotation: state.rotation },
         (done, total) => dispatch({ type: 'progress', ratio: done / total, label: `Processing ${done}/${total}` })
       );
       dispatch({ type: 'frames-ready', frames });
     } catch (err) {
       dispatch({ type: 'error', msg: (err as Error).message });
     }
-  }, [state.files, state.background, state.paddingPct, width, height, getPipeline]);
+  }, [state.files, state.background, state.paddingPct, state.fit, state.rotation, width, height, getPipeline]);
 
   const runExport = useCallback(async () => {
     if (!state.frames.length) return;
@@ -183,6 +191,8 @@ export default function App() {
               durationS={state.durationS}
               background={state.background}
               paddingPct={state.paddingPct}
+              fit={state.fit}
+              rotation={state.rotation}
               width={width}
               height={height}
               disabled={busy}
@@ -192,6 +202,8 @@ export default function App() {
               onDuration={(s) => dispatch({ type: 'set-duration', s })}
               onBg={(c) => dispatch({ type: 'set-bg', color: c })}
               onPadding={(p) => dispatch({ type: 'set-padding', pct: p })}
+              onFit={(fit) => dispatch({ type: 'set-fit', fit })}
+              onRotation={(deg) => dispatch({ type: 'set-rotation', deg })}
             />
           )}
         </section>

@@ -1,11 +1,13 @@
-import exifr from 'exifr';
-import { containRect } from './sequence';
+import { fitRect } from './sequence';
+import type { Fit, Rotation } from './presets';
 
 export interface ProcessOptions {
   width: number;
   height: number;
   background: string;
   paddingPct: number;
+  fit: Fit;
+  rotation: Rotation;
 }
 
 const HEIC_EXT = /\.(heic|heif)$/i;
@@ -31,51 +33,20 @@ const heicToJpeg = async (file: File | Blob): Promise<Blob> => {
   return Array.isArray(out) ? out[0] : out;
 };
 
-/** Apply EXIF orientation 1-8 as a canvas transform. */
-const applyOrientation = (
-  ctx: OffscreenCanvasRenderingContext2D,
-  orientation: number,
-  w: number,
-  h: number
-): { drawW: number; drawH: number } => {
-  switch (orientation) {
-    case 2: ctx.transform(-1, 0, 0, 1, w, 0); break;
-    case 3: ctx.transform(-1, 0, 0, -1, w, h); break;
-    case 4: ctx.transform(1, 0, 0, -1, 0, h); break;
-    case 5: ctx.transform(0, 1, 1, 0, 0, 0); return { drawW: h, drawH: w };
-    case 6: ctx.transform(0, 1, -1, 0, h, 0); return { drawW: h, drawH: w };
-    case 7: ctx.transform(0, -1, -1, 0, h, w); return { drawW: h, drawH: w };
-    case 8: ctx.transform(0, -1, 1, 0, 0, w); return { drawW: h, drawH: w };
-  }
-  return { drawW: w, drawH: h };
-};
-
-/** Read EXIF orientation tag from a file (defaults to 1 on failure). */
-export const readOrientation = async (file: File | Blob): Promise<number> => {
-  try {
-    const exif = await exifr.parse(file, { pick: ['Orientation'] });
-    return (exif?.Orientation as number) ?? 1;
-  } catch {
-    return 1;
-  }
-};
-
 /**
- * Decode, orient, pad, resize, return JPEG bytes.
+ * Decode, fit, rotate, return JPEG bytes at the output size.
  * Runs in a worker (OffscreenCanvas + createImageBitmap) and closes the source bitmap when done.
  */
 export const processToJpeg = async (
   file: File | Blob,
-  orientation: number,
   opts: ProcessOptions,
   quality = 0.9
 ): Promise<Uint8Array> => {
   const source: File | Blob = isHeic(file) ? await heicToJpeg(file) : file;
+  // 'from-image' applies the EXIF orientation, so the bitmap is already upright.
   const bitmap = await createImageBitmap(source, { imageOrientation: 'from-image' });
-  // 'from-image' applies EXIF orientation in current browsers; the manual
-  // transform below is the fallback for older Safari.
 
-  const { width, height, background, paddingPct } = opts;
+  const { width, height, background, paddingPct, fit, rotation } = opts;
   const canvas = new OffscreenCanvas(width, height);
   const ctx = canvas.getContext('2d', { alpha: false });
   if (!ctx) throw new Error('OffscreenCanvas 2D context unavailable');
@@ -85,23 +56,22 @@ export const processToJpeg = async (
   ctx.imageSmoothingEnabled = true;
   ctx.imageSmoothingQuality = 'high';
 
-  const needsManual = orientation > 4; // rotated 90/270: swap dimensions
-  const srcW = needsManual ? bitmap.height : bitmap.width;
-  const srcH = needsManual ? bitmap.width : bitmap.height;
+  // A quarter turn swaps the footprint of the photo on the canvas.
+  const quarterTurn = rotation % 180 !== 0;
+  const srcW = quarterTurn ? bitmap.height : bitmap.width;
+  const srcH = quarterTurn ? bitmap.width : bitmap.height;
+  const { dx, dy, dw, dh, inner } = fitRect(srcW, srcH, width, height, paddingPct, fit);
 
-  const { dx, dy, dw, dh } = containRect(srcW, srcH, width, height, paddingPct);
-
-  if (orientation > 1 && orientation <= 8) {
-    ctx.save();
-    // Translate to draw position then apply orientation in local space.
-    ctx.translate(dx + dw / 2, dy + dh / 2);
-    const local = applyOrientation(ctx, orientation, dw, dh);
-    ctx.drawImage(bitmap, -local.drawW / 2, -local.drawH / 2, local.drawW, local.drawH);
-    ctx.restore();
-  } else {
-    ctx.drawImage(bitmap, dx, dy, dw, dh);
-  }
-
+  // 'cover' overflows the padded frame; the clip keeps the padding clean.
+  ctx.beginPath();
+  ctx.rect(inner.x, inner.y, inner.w, inner.h);
+  ctx.clip();
+  ctx.translate(dx + dw / 2, dy + dh / 2);
+  ctx.rotate((rotation * Math.PI) / 180);
+  // Inside the rotated frame the axes follow the photo again.
+  const drawW = quarterTurn ? dh : dw;
+  const drawH = quarterTurn ? dw : dh;
+  ctx.drawImage(bitmap, -drawW / 2, -drawH / 2, drawW, drawH);
   bitmap.close();
 
   const blob = await canvas.convertToBlob({ type: 'image/jpeg', quality });
